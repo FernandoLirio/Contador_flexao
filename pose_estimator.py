@@ -17,6 +17,7 @@ options = python.vision.PoseLandmarkerOptions(
 #https://github.com/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb
 #ESSE TRECHO FOI RETIRADO DESSA DOCUMENTACAO
 def draw_landmarks_on_image(rgb_image, detection_result):
+
     pose_landmarks_list = detection_result.pose_landmarks
     annotated_image = np.copy(rgb_image)
 
@@ -34,18 +35,28 @@ def draw_landmarks_on_image(rgb_image, detection_result):
             solutions.drawing_styles.get_default_pose_landmarks_style())
     return annotated_image
 
-cap = cv2.VideoCapture(file_name)
+with python.vision.PoseLandmarker.create_from_options(options) as landmarker:
+    cap = cv2.VideoCapture(file_name)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    calc_ts = 0
 
-while cap.isOpened():
-    ret, frame = cap.read()
+    while cap.isOpened():
+        ret, frame = cap.read()
 
-    if ret == True:
-        cv2.imshow("Frame", frame)
-        if cv2.waitKey(25) & 0xFF == ord('q'):
+        if ret == True:
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+            calc_ts = int(calc_ts + 1000 / fps)
+            detection_result = landmarker.detect_for_video(mp_image, calc_ts)
+            annotated_image = draw_landmarks_on_image(frame, detection_result)
+
+
+
+            cv2.imshow("Frame", annotated_image)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+        
+        else:
             break
-    
-    else:
-        break
 
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()
